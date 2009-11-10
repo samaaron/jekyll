@@ -6,10 +6,10 @@ begin
   gem 'jeweler', '>= 0.11.0'
   require 'jeweler'
   Jeweler::Tasks.new do |s|
-    s.name = "jekyll"
+    s.name = "naeu-jekyll"
     s.summary = %Q{Jekyll is a simple, blog aware, static site generator.}
     s.email = "tom@mojombo.com"
-    s.homepage = "http://github.com/mojombo/jekyll"
+    s.homepage = "http://github.com/samaaron/jekyll"
     s.description = "Jekyll is a simple, blog aware, static site generator."
     s.authors = ["Tom Preston-Werner"]
     s.rubyforge_project = "jekyll"
