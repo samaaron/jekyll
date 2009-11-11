@@ -30,12 +30,12 @@ require 'jekyll/albino'
 module Jekyll
   # Default options. Overriden by values in _config.yml or command-line opts.
   # (Strings rather symbols used for compatability with YAML)
+
   DEFAULTS = {
     'auto'         => false,
     'server'       => false,
     'server_port'  => 4000,
-
-    'source'       => '.',
+    'source'       => File.expand_path('.'),
     'destination'  => File.join('.', '_site'),
 
     'lsi'          => false,
