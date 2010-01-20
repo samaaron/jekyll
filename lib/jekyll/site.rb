@@ -1,7 +1,7 @@
 module Jekyll
 
   class Site
-    attr_accessor :config, :layouts, :posts, :categories, :exclude,
+    attr_accessor :config, :layouts, :posts, :things, :categories, :exclude,
                   :source, :dest, :lsi, :pygments, :permalink_style, :tags
 
     # Initialize the site
@@ -25,6 +25,7 @@ module Jekyll
     def reset
       self.layouts         = {}
       self.posts           = []
+      self.things          = []
       self.categories      = Hash.new { |hash, key| hash[key] = [] }
       self.tags            = Hash.new { |hash, key| hash[key] = [] }
     end
@@ -95,6 +96,7 @@ module Jekyll
       self.read_layouts
       self.transform_pages
       self.write_posts
+      self.write_things
     end
 
     # Read all the files in <source>/_layouts into memory for later use.
@@ -147,12 +149,49 @@ module Jekyll
       # ignore missing layout dir
     end
 
+    def read_things(dir)
+      base = File.join(self.source, dir, '_things')
+      entries = []
+      Dir.chdir(base) { entries = filter_entries(Dir['**/*']) }
+
+      # first pass processes, but does not yet render post content
+      entries.each do |f|
+        if Thing.valid?(f)
+          thing = Thing.new(self, self.source, dir, f)
+
+          if thing.published
+            self.things << thing
+            thing.categories.each { |c| self.categories[c] << thing }
+            thing.tags.each { |c| self.tags[c] << thing }
+          end
+        end
+      end
+
+      self.things.sort!
+
+      # second pass renders each post now that full site payload is available
+      self.things.each do |thing|
+        thing.render(self.layouts, site_payload)
+      end
+
+      self.categories.values.map { |ps| ps.sort! { |a, b| b <=> a} }
+      self.tags.values.map { |ps| ps.sort! { |a, b| b <=> a} }
+    rescue Errno::ENOENT => e
+      # ignore missing layout dir
+    end
+
     # Write each post to <dest>/<year>/<month>/<day>/<slug>
     #
     # Returns nothing
     def write_posts
       self.posts.each do |post|
         post.write(self.dest)
+      end
+    end
+
+    def write_things
+      self.things.each do |thing|
+        thing.write(self.dest)
       end
     end
 
@@ -176,6 +215,11 @@ module Jekyll
       if directories.include?('_posts')
         directories.delete('_posts')
         read_posts(dir)
+      end
+
+      if directories.include?('_things')
+        directories.delete('_things')
+        read_things(dir)
       end
 
       [directories, files].each do |entries|
@@ -214,6 +258,15 @@ module Jekyll
       return hash
     end
 
+    def thing_attr_hash(thing_attr)
+      # Build a hash map based on the specified post attribute ( post attr => array of posts )
+      # then sort each array in reverse order
+      hash = Hash.new { |hash, key| hash[key] = Array.new }
+      self.things.each { |p| p.send(thing_attr.to_sym).each { |t| hash[t] << p } }
+      hash.values.map { |sortme| sortme.sort! { |a, b| b <=> a} }
+      return hash
+    end
+
     # The Hash payload containing site-wide data
     #
     # Returns {"site" => {"time" => <Time>,
@@ -223,6 +276,7 @@ module Jekyll
       {"site" => self.config.merge({
           "time"       => Time.now,
           "posts"      => self.posts.sort { |a,b| b <=> a },
+          "things"     => self.things.sort { |a,b| b <=> a },
           "categories" => post_attr_hash('categories'),
           "tags"       => post_attr_hash('tags')})}
     end
@@ -233,7 +287,7 @@ module Jekyll
     # '.htaccess'
     def filter_entries(entries)
       entries = entries.reject do |e|
-        unless ['_posts', '.htaccess'].include?(e)
+        unless ['_posts', '_things', '.htaccess'].include?(e)
           ['.', '_', '#'].include?(e[0..0]) || e[-1..-1] == '~' || self.exclude.include?(e)
         end
       end
