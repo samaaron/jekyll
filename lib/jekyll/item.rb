@@ -193,7 +193,7 @@ module Jekyll
       # construct payload
       payload =
       {
-        "site" => { "related_items" => related_items(site_payload["site"][@kind]) },
+        "site" => { "related_items" => related_items(site_payload["site"]["#{@kind}s"]) },
         "page" => self.to_liquid
       }
       payload = payload.deep_merge(site_payload)

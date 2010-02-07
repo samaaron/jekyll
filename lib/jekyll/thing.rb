@@ -1,5 +1,11 @@
 module Jekyll
   class Thing < Item
+    def initialize(site, source, dir, name)
+      @kind = 'thing'
+      @under_scored_dir = '_things'
+      super
+    end
+
     def next
       pos = self.site.things.index(self)
 
